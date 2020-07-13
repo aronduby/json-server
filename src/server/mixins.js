@@ -26,7 +26,10 @@ function getRemovable(db, opts) {
             // Test if references is defined in table
             const ref = _.getById(db[refName], value)
             if (_.isUndefined(ref)) {
-              removable.push({ name: collName, id: doc.id })
+              removable.push({
+                name: collName,
+                id: doc[_.id || 'id']
+              })
             }
           }
         }
