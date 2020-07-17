@@ -11,19 +11,26 @@ module.exports = (db, name, opts) => {
   const router = express.Router()
   router.use(delay)
 
+  function _innerEmbed(from, fromName, to) {
+    const query = {}
+    const singularResource = pluralize.singular(fromName)
+    const idVal = from[db._.id || 'id']
+    query[`${singularResource}${opts.foreignKeySuffix}`] = idVal
+    return db
+      .get(to)
+      .filter(query)
+      .value()
+  }
+
   // Embed function used in GET /name and GET /name/id
-  function embed(resource, e) {
+  function embed(resource, e, resourceName = name) {
     e &&
       [].concat(e).forEach(externalResource => {
-        if (db.get(externalResource).value) {
-          const query = {}
-          const singularResource = pluralize.singular(name)
-          const idVal = resource[db._.id || 'id']
-          query[`${singularResource}${opts.foreignKeySuffix}`] = idVal
-          resource[externalResource] = db
-            .get(externalResource)
-            .filter(query)
-            .value()
+        const embedPath = externalResource.split('.')
+        const first = embedPath.shift()
+        resource[first] = _innerEmbed(resource, resourceName, first)
+        if (embedPath.length > 0) {
+          resource[first].forEach(r => embed(r, embedPath.join('.'), first))
         }
       })
   }
